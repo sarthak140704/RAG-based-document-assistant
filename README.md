@@ -8,6 +8,9 @@ clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
 > it runs fully offline with zero API keys, yet upgrades to real LLMs and
 > semantic embeddings with a single environment variable.
 
+<!-- Add your deployed link once live, e.g. Streamlit Community Cloud -->
+🔗 **Live demo:** _coming soon_ &nbsp;·&nbsp; 💻 **Source:** https://github.com/sarthak140704/RAG-based-document-assistant
+
 ---
 
 ## ✨ Features
@@ -48,6 +51,8 @@ clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
 
 ## 🚀 Quickstart
 
+**Windows (PowerShell):**
+
 ```powershell
 # 1. (optional) create a virtual environment
 python -m venv .venv
@@ -58,6 +63,27 @@ pip install -r requirements.txt
 
 # 3. copy the example env (defaults work offline, no keys required)
 copy .env.example .env
+
+# 4a. run the web app
+streamlit run app.py
+
+# 4b. …or use the CLI
+python cli.py ingest data/sample.txt
+python cli.py ask "What is retrieval-augmented generation?"
+```
+
+**macOS / Linux (bash):**
+
+```bash
+# 1. (optional) create a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. install
+pip install -r requirements.txt
+
+# 3. copy the example env (defaults work offline, no keys required)
+cp .env.example .env
 
 # 4a. run the web app
 streamlit run app.py
