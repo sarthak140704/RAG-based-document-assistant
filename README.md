@@ -152,6 +152,33 @@ python -m pytest -q
 | `CHUNK_OVERLAP` | `40` | Overlap in words |
 | `TOP_K` | `4` | Passages retrieved per query |
 
+## ☁️ Deploy to Streamlit Community Cloud (free)
+
+Get a public live-demo link in a few clicks:
+
+1. Push this repo to GitHub (already done).
+2. Go to **[share.streamlit.io](https://share.streamlit.io)** and sign in with GitHub.
+3. Click **Create app → Deploy a public app from GitHub** and select:
+   - **Repository:** `sarthak140704/RAG-based-document-assistant`
+   - **Branch:** `main`
+   - **Main file path:** `app.py`
+4. Open **Advanced settings → Secrets** and paste (keeps the free tier fast & within memory):
+   ```toml
+   EMBEDDING_BACKEND = "hashing"
+   # Optional real LLM:
+   # LLM_PROVIDER = "openai"
+   # LLM_MODEL = "gpt-4o-mini"
+   # OPENAI_API_KEY = "sk-..."
+   ```
+5. Click **Deploy**. You'll get a URL like `https://<app-name>.streamlit.app` that
+   **auto-redeploys on every `git push`**.
+
+> 💡 The free tier has ~1 GB RAM. `EMBEDDING_BACKEND=hashing` avoids the large
+> torch download and runs comfortably. Switch to `st` for best semantic quality
+> when running locally or on a larger instance.
+
+Finally, replace the **Live demo** link at the top of this README with your new URL.
+
 ## 🗺️ Roadmap / stretch goals
 
 - Hybrid search (keyword + vector) and re-ranking

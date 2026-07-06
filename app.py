@@ -2,10 +2,20 @@
 
 Run with:  streamlit run app.py
 """
+import os
 import tempfile
 from pathlib import Path
 
 import streamlit as st
+
+# Bridge Streamlit Cloud secrets -> environment variables BEFORE importing
+# src.config, so settings (which read os.getenv) pick them up on deploy.
+try:
+    for _key, _value in st.secrets.items():
+        if isinstance(_value, str):
+            os.environ.setdefault(_key, _value)
+except Exception:
+    pass
 
 from src.config import settings
 from src.rag import RAGPipeline
