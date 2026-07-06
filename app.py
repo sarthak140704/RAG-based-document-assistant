@@ -20,7 +20,7 @@ except Exception:
 from src.config import settings
 from src.rag import RAGPipeline
 
-st.set_page_config(page_title="AI Research Assistant", page_icon="\U0001F4DA", layout="wide")
+st.set_page_config(page_title="Research Assistant", page_icon="\U0001F4DA", layout="wide")
 
 
 @st.cache_resource
@@ -30,11 +30,11 @@ def get_pipeline() -> RAGPipeline:
 
 pipeline = get_pipeline()
 
-st.title("\U0001F4DA AI Research Assistant")
+st.title("\U0001F4DA Research Assistant")
 st.caption("Ask questions across your own documents and get answers with citations (RAG).")
 
 with st.sidebar:
-    st.header("1 \u00b7 Add documents")
+    st.header("Add documents")
     uploads = st.file_uploader(
         "Upload PDF / TXT / MD",
         type=["pdf", "txt", "md", "markdown"],
@@ -61,7 +61,7 @@ with st.sidebar:
         st.session_state.pop("history", None)
         st.rerun()
 
-st.header("2 \u00b7 Ask a question")
+st.header("Ask a question")
 
 if "history" not in st.session_state:
     st.session_state.history = []
