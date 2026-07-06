@@ -9,7 +9,7 @@ clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
 > semantic embeddings with a single environment variable.
 
 <!-- Add your deployed link once live, e.g. Streamlit Community Cloud -->
-🔗 **Live demo:** _coming soon_ &nbsp;·&nbsp; 💻 **Source:** https://github.com/sarthak140704/RAG-based-document-assistant
+🔗 **Live demo:** https://rag-based-document-assistant-sarverma1407.streamlit.app/ &nbsp;·&nbsp; 💻 **Source:** https://github.com/sarthak140704/RAG-based-document-assistant
 
 ---
 
@@ -105,7 +105,9 @@ python cli.py ask "Why does chunk overlap matter?"
 
 ## 🔌 Using a real LLM
 
-Edit `.env`:
+By default the app uses the offline **extractive** answerer (no key needed),
+which returns cited passages. To get fluent, natural-language answers, plug in
+an LLM by editing `.env` (local) or **Streamlit → Settings → Secrets** (cloud):
 
 ```ini
 # OpenAI
@@ -119,6 +121,39 @@ LLM_MODEL=llama3
 ```
 
 For best retrieval quality, keep `EMBEDDING_BACKEND=st` (the default).
+
+### 🆓 Use a FREE LLM key (Groq — recommended)
+
+[Groq](https://groq.com) offers a **free API key (no credit card)** and is
+OpenAI-compatible, so it works with this app out of the box — you only add a
+`base_url`. Steps:
+
+1. Go to **[console.groq.com](https://console.groq.com)** and sign up (free).
+2. Open **API Keys → Create API Key**, and copy it (starts with `gsk_...`).
+3. Add these to your config:
+   - **Locally** — put them in `.env`:
+     ```ini
+     LLM_PROVIDER=openai
+     LLM_MODEL=llama-3.1-8b-instant
+     OPENAI_API_KEY=gsk_your_key_here
+     OPENAI_BASE_URL=https://api.groq.com/openai/v1
+     ```
+   - **On Streamlit Cloud** — go to **Manage app → Settings → Secrets** and paste
+     the same values in TOML form (each on its own line, values in quotes):
+     ```toml
+     LLM_PROVIDER = "openai"
+     LLM_MODEL = "llama-3.1-8b-instant"
+     OPENAI_API_KEY = "gsk_your_key_here"
+     OPENAI_BASE_URL = "https://api.groq.com/openai/v1"
+     ```
+4. **Save** the secrets (the app auto-reboots), then ask a question — the sidebar
+   will show `LLM provider: openai` and answers will now be fluent + cited.
+
+> Other free options: **[OpenRouter](https://openrouter.ai)** has free models
+> (use `OPENAI_BASE_URL=https://openrouter.ai/api/v1`), and **Google Gemini**
+> has a free tier via [AI Studio](https://aistudio.google.com). Groq is the
+> simplest because it needs no code changes and is extremely fast.
+
 
 ## 📊 Evaluation
 
