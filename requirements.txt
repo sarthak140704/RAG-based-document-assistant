@@ -1,0 +1,17 @@
+# --- Core (required) ---
+numpy>=1.26
+pypdf>=4.2
+python-dotenv>=1.0
+streamlit>=1.36
+
+# --- Embeddings (recommended; enables EMBEDDING_BACKEND=st) ---
+# Pulls in torch (large). For a fast, offline, no-torch start use
+# EMBEDDING_BACKEND=hashing, which needs only numpy.
+sentence-transformers>=2.7
+
+# --- Optional LLM providers ---
+openai>=1.30      # LLM_PROVIDER=openai or azure
+requests>=2.31    # LLM_PROVIDER=ollama
+
+# --- Dev ---
+pytest>=8.0

@@ -1,0 +1,27 @@
+[
+  {
+    "question": "What is retrieval-augmented generation?",
+    "expected_source": "sample.txt",
+    "expected_answer_contains": "retriev"
+  },
+  {
+    "question": "What are the four stages of a RAG pipeline?",
+    "expected_source": "sample.txt",
+    "expected_answer_contains": "embedding"
+  },
+  {
+    "question": "Why does chunk overlap matter?",
+    "expected_source": "sample.txt",
+    "expected_answer_contains": "overlap"
+  },
+  {
+    "question": "How is cosine similarity related to the dot product?",
+    "expected_source": "sample.txt",
+    "expected_answer_contains": "normal"
+  },
+  {
+    "question": "How is the quality of a RAG system evaluated?",
+    "expected_source": "sample.txt",
+    "expected_answer_contains": "retrieval"
+  }
+]

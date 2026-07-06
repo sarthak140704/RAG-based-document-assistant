@@ -1,0 +1,46 @@
+Retrieval-Augmented Generation (RAG): A Short Primer
+
+What is RAG?
+Retrieval-Augmented Generation is a technique that improves large language model
+answers by first retrieving relevant text from an external knowledge base and
+then generating a response grounded in that retrieved context. Instead of relying
+only on what a model memorized during training, a RAG system looks up fresh,
+domain-specific documents at query time. This reduces hallucination and lets the
+model cite its sources.
+
+The core pipeline.
+A typical RAG pipeline has four stages. First, ingestion: documents are loaded
+and split into smaller overlapping chunks so that each piece fits comfortably in
+the model's context window. Second, embedding: each chunk is converted into a
+dense numerical vector using an embedding model such as sentence-transformers.
+Third, retrieval: the user's question is embedded with the same model, and the
+most similar chunks are found using a nearest-neighbour search over the vectors,
+commonly measured with cosine similarity. Fourth, generation: the retrieved
+chunks are inserted into a prompt and a language model produces the final answer.
+
+Why chunking matters.
+Chunking controls how much context each retrieved unit carries. Chunks that are
+too large waste the context window and dilute relevance; chunks that are too small
+lose important surrounding meaning. A common strategy is a sliding window with a
+fixed size and a small overlap so that ideas spanning a boundary are not lost.
+
+Embeddings and similarity.
+An embedding maps text into a high-dimensional space where semantically similar
+texts lie close together. When vectors are normalized to unit length, cosine
+similarity between two vectors is simply their dot product, which makes retrieval
+fast. Vector databases such as FAISS, Chroma, and Pinecone store these vectors
+and provide efficient approximate nearest-neighbour search at scale.
+
+Citations and trust.
+A major advantage of RAG over a plain chatbot is traceability. Because every
+answer is built from specific retrieved passages, the system can show exactly
+which document and page each claim came from. This makes answers verifiable and
+is especially valuable in research, legal, and enterprise settings.
+
+Evaluating a RAG system.
+RAG quality is usually measured on two axes. Retrieval quality asks whether the
+right passages were fetched, often measured with hit rate or recall at k.
+Generation quality asks whether the final answer is faithful to the retrieved
+context and free of hallucination, often measured with grounding or faithfulness
+scores. Tracking both metrics separately helps diagnose whether failures come
+from retrieval or from generation.
