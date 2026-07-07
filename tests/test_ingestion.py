@@ -1,4 +1,4 @@
-from src.ingestion import build_chunks, chunk_text
+from src.ingestion import build_chunks, chunk_text, smart_chunks, split_paragraphs, split_sentences
 
 
 def test_chunk_overlap_and_coverage():
@@ -36,3 +36,29 @@ def test_build_chunks_metadata(tmp_path):
     assert all(c.source == "doc.txt" for c in chunks)
     assert all(c.page == 1 for c in chunks)
     assert chunks[0].chunk_id == "doc.txt::p1::c0"
+
+
+def test_split_paragraphs_and_sentences():
+    text = "First para line one.\n\nSecond para here. It has two sentences."
+    paras = split_paragraphs(text)
+    assert len(paras) == 2
+    assert split_sentences(paras[1]) == ["Second para here.", "It has two sentences."]
+
+
+def test_smart_chunks_packs_whole_sentences():
+    text = (
+        "Alpha is the first item. Beta is the second item. Gamma is the third item. "
+        "Delta is the fourth item. Epsilon is the fifth item."
+    )
+    chunks = smart_chunks(text, chunk_size=6, overlap=2)
+    assert len(chunks) >= 2
+    joined = " ".join(chunks)
+    for word in ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"]:
+        assert word in joined
+
+
+def test_smart_chunks_long_sentence_falls_back_to_words():
+    long_sentence = " ".join(f"w{i}" for i in range(50))  # no punctuation
+    chunks = smart_chunks(long_sentence, chunk_size=10, overlap=2)
+    assert len(chunks) > 1
+    assert "w49" in " ".join(chunks)

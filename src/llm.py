@@ -39,15 +39,42 @@ def build_user_prompt(question: str, sources: List[Dict]) -> str:
     )
 
 
+CONDENSE_SYSTEM = (
+    "Given a conversation and a follow-up question, rephrase the follow-up into a "
+    "standalone search query that captures the needed context. Output ONLY the "
+    "rewritten query, nothing else."
+)
+
+History = List  # list of (question, answer) tuples
+
+
+def _build_messages(question: str, sources: List[Dict], history=None) -> List[Dict]:
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    for turn in (history or [])[-3:]:
+        q, a = turn[0], turn[1]
+        messages.append({"role": "user", "content": q})
+        messages.append({"role": "assistant", "content": a})
+    messages.append({"role": "user", "content": build_user_prompt(question, sources)})
+    return messages
+
+
 class BaseLLM:
-    def generate(self, question: str, sources: List[Dict]) -> str:  # pragma: no cover
+    def generate(self, question: str, sources: List[Dict], history=None) -> str:  # pragma: no cover
         raise NotImplementedError
+
+    def stream(self, question: str, sources: List[Dict], history=None):
+        """Default: yield the full answer as a single chunk."""
+        yield self.generate(question, sources, history)
+
+    def condense_query(self, question: str, history=None) -> str:
+        """Default: no rewrite (single-turn)."""
+        return question
 
 
 class ExtractiveLLM(BaseLLM):
     """No-API fallback: returns a cited answer built from the top passages."""
 
-    def generate(self, question: str, sources: List[Dict]) -> str:
+    def generate(self, question: str, sources: List[Dict], history=None) -> str:
         if not sources:
             return "I couldn't find this in the provided documents."
         parts = []
@@ -58,6 +85,16 @@ class ExtractiveLLM(BaseLLM):
             parts.append(f"{snippet} [{i}]")
         return " ".join(parts)
 
+    def stream(self, question: str, sources: List[Dict], history=None):
+        for token in self.generate(question, sources, history).split(" "):
+            yield token + " "
+
+    def condense_query(self, question: str, history=None) -> str:
+        if not history:
+            return question
+        last_q = history[-1][0]
+        return f"{last_q} {question}"
+
 
 class _ChatLLM(BaseLLM):
     """Shared chat-completions call for OpenAI-style clients."""
@@ -65,16 +102,45 @@ class _ChatLLM(BaseLLM):
     client = None
     model = ""
 
-    def generate(self, question: str, sources: List[Dict]) -> str:
+    def generate(self, question: str, sources: List[Dict], history=None) -> str:
         resp = self.client.chat.completions.create(
             model=self.model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_user_prompt(question, sources)},
-            ],
+            messages=_build_messages(question, sources, history),
             temperature=0.0,
         )
         return (resp.choices[0].message.content or "").strip()
+
+    def stream(self, question: str, sources: List[Dict], history=None):
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=_build_messages(question, sources, history),
+            temperature=0.0,
+            stream=True,
+        )
+        for chunk in resp:
+            delta = chunk.choices[0].delta.content if chunk.choices else None
+            if delta:
+                yield delta
+
+    def condense_query(self, question: str, history=None) -> str:
+        if not history:
+            return question
+        convo = "\n".join(f"User: {t[0]}\nAssistant: {t[1]}" for t in history[-3:])
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": CONDENSE_SYSTEM},
+                    {
+                        "role": "user",
+                        "content": f"Conversation:\n{convo}\n\nFollow-up: {question}\n\nStandalone query:",
+                    },
+                ],
+                temperature=0.0,
+            )
+            return (resp.choices[0].message.content or "").strip() or question
+        except Exception:  # pragma: no cover - network dependent
+            return question
 
 
 class OpenAILLM(_ChatLLM):
@@ -103,17 +169,14 @@ class OllamaLLM(BaseLLM):
         self.model = model
         self.base_url = base_url.rstrip("/")
 
-    def generate(self, question: str, sources: List[Dict]) -> str:
+    def generate(self, question: str, sources: List[Dict], history=None) -> str:
         import requests
 
         r = requests.post(
             f"{self.base_url}/api/chat",
             json={
                 "model": self.model,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": build_user_prompt(question, sources)},
-                ],
+                "messages": _build_messages(question, sources, history),
                 "stream": False,
                 "options": {"temperature": 0.0},
             },

@@ -1,5 +1,9 @@
 # 📚 AI Research Assistant (RAG)
 
+[![tests](https://github.com/sarthak140704/RAG-based-document-assistant/actions/workflows/tests.yml/badge.svg)](https://github.com/sarthak140704/RAG-based-document-assistant/actions/workflows/tests.yml)
+![python](https://img.shields.io/badge/python-3.12-blue)
+[![Streamlit](https://img.shields.io/badge/demo-live-brightgreen)](https://rag-based-document-assistant-sarverma1407.streamlit.app/)
+
 Ask questions across your own documents (PDF / TXT / Markdown) and get concise
 answers **with inline citations** back to the exact source and page. Built as a
 clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
@@ -8,7 +12,6 @@ clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
 > it runs fully offline with zero API keys, yet upgrades to real LLMs and
 > semantic embeddings with a single environment variable.
 
-<!-- Add your deployed link once live, e.g. Streamlit Community Cloud -->
 🔗 **Live demo:** https://rag-based-document-assistant-sarverma1407.streamlit.app/ &nbsp;·&nbsp; 💻 **Source:** https://github.com/sarthak140704/RAG-based-document-assistant
 
 ---
@@ -17,34 +20,34 @@ clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
 
 - **End-to-end RAG**: ingestion → chunking → embedding → retrieval → grounded generation.
 - **Citations everywhere** — every answer references the passages it used (`[1]`, `[2]`), with source file + page.
+- **Streaming answers** — responses render token-by-token, like ChatGPT.
+- **Conversation memory** — ask follow-ups ("and why is that?"); the query is condensed with chat history before retrieval.
+- **Confidence signal** — surfaces the top retrieval score and warns on low-confidence answers; optional `MIN_SCORE` gate drops weak matches.
+- **Structure-aware chunking** — packs whole sentences/paragraphs (with overlap) instead of blind word windows.
 - **Runs offline, no keys needed** — a built-in *extractive* answerer and a pure-NumPy *hashing* embedder mean `pip install` → run.
-- **Pluggable LLMs** — OpenAI, Azure OpenAI, or local Ollama via one env var.
+- **Pluggable LLMs** — OpenAI, Azure OpenAI, **Groq (free)**, or local Ollama via one env var.
 - **Pluggable embeddings** — `sentence-transformers` for quality, or hashing for speed/offline.
 - **Persistent vector store** — lightweight NumPy cosine store (drop-in concept for FAISS / Chroma / Pinecone).
 - **Evaluation harness** — measures retrieval hit-rate, citation rate, and answer grounding.
 - **Two front-ends** — a Streamlit chat UI and a CLI.
-- **Tested** — unit tests for chunking, retrieval, persistence, and evaluation.
+- **Tested + CI** — unit tests for chunking, retrieval, persistence, and evaluation, run on every push via GitHub Actions.
+
+## 🎬 Demo
+
+<!-- Record a short screen capture of the live app and save it as docs/demo.gif -->
+<!-- (e.g. with ScreenToGif on Windows), then it will show here automatically.  -->
+![Demo](docs/demo.gif)
 
 ## 🏗️ Architecture
 
-```
-                ┌────────────┐   chunks   ┌──────────────┐  vectors  ┌───────────────┐
-  PDF/TXT/MD ─▶ │ ingestion  │ ─────────▶ │  embeddings  │ ────────▶ │  vector store │
-                └────────────┘            └──────────────┘           └───────┬───────┘
-                                                                             │ top-k
-   question ──────────────────────────────────────────────────────▶ retrieve │
-                                                                             ▼
-                                              ┌──────────────┐   answer + [citations]
-                                              │     LLM      │ ─────────────────────────▶
-                                              └──────────────┘
-```
+![Architecture](docs/architecture.svg)
 
 | Module | Responsibility |
 | --- | --- |
-| `src/ingestion.py` | Load PDFs/text, normalize, sliding-window chunk with page metadata |
+| `src/ingestion.py` | Load PDFs/text, structure-aware chunking with page metadata |
 | `src/embeddings.py` | `sentence-transformers` or pure-NumPy hashing embedder |
 | `src/vectorstore.py` | Persistent, normalized cosine-similarity store |
-| `src/llm.py` | Provider-agnostic LLM + extractive offline fallback |
+| `src/llm.py` | Provider-agnostic LLM (streaming + memory) + extractive offline fallback |
 | `src/rag.py` | Orchestrates ingest / retrieve / answer |
 | `src/evaluation.py` | Retrieval + grounding metrics |
 | `app.py` / `cli.py` | Streamlit UI / command line |
@@ -186,6 +189,7 @@ python -m pytest -q
 | `CHUNK_SIZE` | `200` | Chunk size in words |
 | `CHUNK_OVERLAP` | `40` | Overlap in words |
 | `TOP_K` | `4` | Passages retrieved per query |
+| `MIN_SCORE` | `0.0` | Drop chunks below this similarity (0 = off) |
 
 ## ☁️ Deploy to Streamlit Community Cloud (free)
 

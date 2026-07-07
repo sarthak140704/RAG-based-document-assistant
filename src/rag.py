@@ -16,8 +16,18 @@ class Answer:
     answer: str
     sources: List[Dict]
 
+    @property
+    def confidence(self) -> float:
+        """Top retrieval score (0 if nothing retrieved)."""
+        return float(self.sources[0]["score"]) if self.sources else 0.0
+
     def to_dict(self) -> dict:
-        return {"question": self.question, "answer": self.answer, "sources": self.sources}
+        return {
+            "question": self.question,
+            "answer": self.answer,
+            "sources": self.sources,
+            "confidence": self.confidence,
+        }
 
 
 class RAGPipeline:
@@ -31,12 +41,23 @@ class RAGPipeline:
         return self.store.add_chunks(chunks)
 
     def retrieve(self, question: str, k: Optional[int] = None) -> List[Dict]:
-        return self.store.query(question, k or self.settings.top_k)
+        results = self.store.query(question, k or self.settings.top_k)
+        min_score = getattr(self.settings, "min_score", 0.0)
+        if min_score > 0:
+            results = [r for r in results if r.get("score", 0.0) >= min_score]
+        return results
 
-    def answer(self, question: str, k: Optional[int] = None) -> Answer:
-        sources = self.retrieve(question, k)
-        text = self.llm.generate(question, sources)
+    def answer(self, question: str, k: Optional[int] = None, history=None) -> Answer:
+        search_q = self.llm.condense_query(question, history) if history else question
+        sources = self.retrieve(search_q, k)
+        text = self.llm.generate(question, sources, history)
         return Answer(question=question, answer=text, sources=sources)
+
+    def stream_answer(self, question: str, k: Optional[int] = None, history=None):
+        """Return ``(sources, token_iterator)`` for streaming UIs."""
+        search_q = self.llm.condense_query(question, history) if history else question
+        sources = self.retrieve(search_q, k)
+        return sources, self.llm.stream(question, sources, history)
 
     def reset(self) -> None:
         self.store.reset()

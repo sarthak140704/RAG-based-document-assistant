@@ -86,3 +86,43 @@ def test_evaluation_metrics(tmp_path):
     assert result.n == 1
     assert result.retrieval_hit_rate == 1.0
     assert result.citation_rate == 1.0
+
+
+def _doc(tmp_path):
+    doc = tmp_path / "solar.txt"
+    doc.write_text("Solar panels use the photovoltaic effect. " * 20, encoding="utf-8")
+    return doc
+
+
+def test_answer_confidence(tmp_path):
+    p = _pipeline(tmp_path)
+    p.ingest([_doc(tmp_path)])
+    res = p.answer("photovoltaic effect")
+    assert res.confidence == res.sources[0]["score"]
+    assert res.confidence > 0
+
+
+def test_extractive_streaming_matches_generate(tmp_path):
+    p = _pipeline(tmp_path)
+    p.ingest([_doc(tmp_path)])
+    sources, stream = p.stream_answer("photovoltaic")
+    streamed = "".join(stream).strip()
+    full = p.llm.generate("photovoltaic", sources).strip()
+    assert streamed == full
+    assert "[1]" in streamed
+
+
+def test_condense_query_extractive():
+    llm = ExtractiveLLM()
+    assert llm.condense_query("why?", None) == "why?"
+    out = llm.condense_query("why is that?", [("what is RAG?", "an answer")])
+    assert "what is RAG?" in out and "why is that?" in out
+
+
+def test_min_score_gate(tmp_path):
+    p = _pipeline(tmp_path)
+    p.ingest([_doc(tmp_path)])
+    p.settings.min_score = 999.0  # impossible threshold -> nothing passes
+    res = p.answer("photovoltaic")
+    assert res.sources == []
+    assert "couldn't find" in res.answer.lower()

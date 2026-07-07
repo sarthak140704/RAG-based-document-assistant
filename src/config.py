@@ -46,6 +46,7 @@ class Settings:
 
     # --- Retrieval ---
     top_k: int = _env_int("TOP_K", 4)
+    min_score: float = float(os.getenv("MIN_SCORE", "0.0"))  # 0 = disabled
 
     # --- Paths ---
     storage_dir: Path = field(default_factory=lambda: PROJECT_ROOT / "storage")

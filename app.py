@@ -18,7 +18,7 @@ except Exception:
     pass
 
 from src.config import settings
-from src.rag import RAGPipeline
+from src.rag import Answer, RAGPipeline
 
 st.set_page_config(page_title="Research Assistant", page_icon="\U0001F4DA", layout="wide")
 
@@ -64,27 +64,54 @@ with st.sidebar:
 st.header("Ask a question")
 
 if "history" not in st.session_state:
-    st.session_state.history = []
+    st.session_state.history = []  # list[Answer]
+
+
+def _confidence_label(conf: float) -> str:
+    hi, mid = (0.5, 0.25) if settings.embedding_backend == "st" else (0.15, 0.06)
+    if conf >= hi:
+        return "High"
+    if conf >= mid:
+        return "Medium"
+    return "Low"
+
+
+def _render_sources(res: Answer) -> None:
+    conf = res.confidence
+    label = _confidence_label(conf)
+    with st.expander(f"Sources ({len(res.sources)}) \u00b7 confidence: {label} ({conf:.2f})"):
+        if not res.sources:
+            st.caption("No matching passages found.")
+        for i, s in enumerate(res.sources, start=1):
+            st.markdown(
+                f"**[{i}] {s.get('source')}** \u2014 page {s.get('page')} "
+                f"\u00b7 score {s.get('score', 0):.3f}"
+            )
+            text = s.get("text", "")
+            st.caption(text[:500] + ("\u2026" if len(text) > 500 else ""))
+
+
+# Render the prior conversation (chronological).
+for res in st.session_state.history:
+    with st.chat_message("user"):
+        st.write(res.question)
+    with st.chat_message("assistant"):
+        st.write(res.answer)
+        _render_sources(res)
 
 question = st.chat_input("Ask something about your documents\u2026")
 if question:
     if pipeline.store.size == 0:
         st.warning("Index some documents first (use the sidebar).")
     else:
-        with st.spinner("Thinking\u2026"):
-            res = pipeline.answer(question)
+        with st.chat_message("user"):
+            st.write(question)
+        history_pairs = [(r.question, r.answer) for r in st.session_state.history]
+        sources, token_iter = pipeline.stream_answer(question, history=history_pairs)
+        with st.chat_message("assistant"):
+            answer_text = st.write_stream(token_iter)
+            res = Answer(question=question, answer=answer_text, sources=sources)
+            if res.confidence and _confidence_label(res.confidence) == "Low":
+                st.caption("\u26a0\ufe0f Low retrieval confidence \u2014 answer may be incomplete.")
+            _render_sources(res)
         st.session_state.history.append(res)
-
-for res in reversed(st.session_state.history):
-    with st.chat_message("user"):
-        st.write(res.question)
-    with st.chat_message("assistant"):
-        st.write(res.answer)
-        with st.expander(f"Sources ({len(res.sources)})"):
-            for i, s in enumerate(res.sources, start=1):
-                st.markdown(
-                    f"**[{i}] {s.get('source')}** \u2014 page {s.get('page')} "
-                    f"\u00b7 score {s.get('score', 0):.3f}"
-                )
-                text = s.get("text", "")
-                st.caption(text[:500] + ("\u2026" if len(text) > 500 else ""))
