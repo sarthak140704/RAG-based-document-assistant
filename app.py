@@ -55,6 +55,7 @@ with st.sidebar:
     st.metric("Indexed chunks", pipeline.store.size)
     st.write(f"**LLM provider:** `{settings.llm_provider}`")
     st.write(f"**Embeddings:** `{settings.embedding_backend}`")
+    st.write(f"**Retrieval:** `{settings.retrieval_mode}`" + (" + rerank" if settings.rerank != "none" else ""))
     st.write(f"**Top-k:** {settings.top_k}")
     if st.button("Reset index"):
         pipeline.reset()

@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from .config import settings as default_settings
 from .ingestion import ingest_paths
 from .llm import get_llm
+from .retrieval import HybridRetriever, get_reranker
 from .vectorstore import VectorStore
 
 
@@ -35,13 +36,23 @@ class RAGPipeline:
         self.settings = settings or default_settings
         self.store = store or VectorStore(self.settings.storage_dir)
         self.llm = llm or get_llm(self.settings)
+        self.retriever = HybridRetriever(self.store, reranker=get_reranker(self.settings))
 
     def ingest(self, paths) -> int:
         chunks = ingest_paths(paths, self.settings.chunk_size, self.settings.chunk_overlap)
         return self.store.add_chunks(chunks)
 
     def retrieve(self, question: str, k: Optional[int] = None) -> List[Dict]:
-        results = self.store.query(question, k or self.settings.top_k)
+        top_k = k or self.settings.top_k
+        if getattr(self.settings, "retrieval_mode", "hybrid") == "hybrid":
+            results = self.retriever.search(
+                question,
+                top_k=top_k,
+                candidate_k=getattr(self.settings, "candidate_k", 10),
+                rerank=getattr(self.settings, "rerank", "none") != "none",
+            )
+        else:
+            results = self.store.query(question, top_k)
         min_score = getattr(self.settings, "min_score", 0.0)
         if min_score > 0:
             results = [r for r in results if r.get("score", 0.0) >= min_score]

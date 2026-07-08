@@ -47,6 +47,10 @@ class Settings:
     # --- Retrieval ---
     top_k: int = _env_int("TOP_K", 4)
     min_score: float = float(os.getenv("MIN_SCORE", "0.0"))  # 0 = disabled
+    retrieval_mode: str = os.getenv("RETRIEVAL_MODE", "hybrid").lower()  # hybrid | vector
+    candidate_k: int = _env_int("CANDIDATE_K", 10)  # candidates per retriever before fusion
+    rerank: str = os.getenv("RERANK", "none").lower()  # none | cross-encoder
+    rerank_model: str = os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 
     # --- Paths ---
     storage_dir: Path = field(default_factory=lambda: PROJECT_ROOT / "storage")

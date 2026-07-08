@@ -20,6 +20,7 @@ clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
 
 - **End-to-end RAG**: ingestion → chunking → embedding → retrieval → grounded generation.
 - **Citations everywhere** — every answer references the passages it used (`[1]`, `[2]`), with source file + page.
+- **Hybrid search + re-ranking** — fuses BM25 keyword search with dense vectors via Reciprocal Rank Fusion, plus an optional cross-encoder re-ranker.
 - **Streaming answers** — responses render token-by-token, like ChatGPT.
 - **Conversation memory** — ask follow-ups ("and why is that?"); the query is condensed with chat history before retrieval.
 - **Confidence signal** — surfaces the top retrieval score and warns on low-confidence answers; optional `MIN_SCORE` gate drops weak matches.
@@ -30,7 +31,8 @@ clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
 - **Persistent vector store** — lightweight NumPy cosine store (drop-in concept for FAISS / Chroma / Pinecone).
 - **Evaluation harness** — measures retrieval hit-rate, citation rate, and answer grounding.
 - **Two front-ends** — a Streamlit chat UI and a CLI.
-- **Tested + CI** — unit tests for chunking, retrieval, persistence, and evaluation, run on every push via GitHub Actions.
+- **Docker-ready** — a lean image runs anywhere with `docker build` + `docker run`.
+- **Tested + CI** — unit tests for chunking, retrieval, persistence, and evaluation, run on every push via GitHub Actions (with ruff linting).
 
 ## 🎬 Demo
 
@@ -47,6 +49,8 @@ clean, from-scratch **Retrieval-Augmented Generation (RAG)** pipeline.
 | `src/ingestion.py` | Load PDFs/text, structure-aware chunking with page metadata |
 | `src/embeddings.py` | `sentence-transformers` or pure-NumPy hashing embedder |
 | `src/vectorstore.py` | Persistent, normalized cosine-similarity store |
+| `src/keyword.py` | Dependency-free BM25 keyword index |
+| `src/retrieval.py` | Hybrid retriever (RRF fusion) + optional cross-encoder re-rank |
 | `src/llm.py` | Provider-agnostic LLM (streaming + memory) + extractive offline fallback |
 | `src/rag.py` | Orchestrates ingest / retrieve / answer |
 | `src/evaluation.py` | Retrieval + grounding metrics |
@@ -178,6 +182,35 @@ pip install pytest
 python -m pytest -q
 ```
 
+Lint (same checks as CI):
+
+```powershell
+pip install ruff
+ruff check .
+```
+
+## 🐳 Docker
+
+Run the whole app in a container — no local Python needed:
+
+```bash
+docker build -t research-assistant .
+docker run -p 8501:8501 research-assistant
+# open http://localhost:8501
+```
+
+The image is lean (uses the `hashing` embedder, no torch). To use a real LLM,
+pass env vars at run time:
+
+```bash
+docker run -p 8501:8501 \
+  -e LLM_PROVIDER=openai \
+  -e LLM_MODEL=llama-3.1-8b-instant \
+  -e OPENAI_API_KEY=gsk_your_key \
+  -e OPENAI_BASE_URL=https://api.groq.com/openai/v1 \
+  research-assistant
+```
+
 ## ⚙️ Configuration (env vars)
 
 | Variable | Default | Notes |
@@ -190,6 +223,9 @@ python -m pytest -q
 | `CHUNK_OVERLAP` | `40` | Overlap in words |
 | `TOP_K` | `4` | Passages retrieved per query |
 | `MIN_SCORE` | `0.0` | Drop chunks below this similarity (0 = off) |
+| `RETRIEVAL_MODE` | `hybrid` | `hybrid` (BM25 + vector) or `vector` |
+| `CANDIDATE_K` | `10` | Candidates per retriever before fusion |
+| `RERANK` | `none` | `none` or `cross-encoder` (needs sentence-transformers) |
 
 ## ☁️ Deploy to Streamlit Community Cloud (free)
 

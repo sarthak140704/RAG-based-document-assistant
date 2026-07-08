@@ -1,11 +1,11 @@
 import numpy as np
 
 from src.embeddings import HashingEmbedder
-from src.vectorstore import VectorStore
-from src.ingestion import build_chunks
-from src.rag import RAGPipeline
-from src.llm import ExtractiveLLM
 from src.evaluation import evaluate
+from src.ingestion import build_chunks
+from src.llm import ExtractiveLLM
+from src.rag import RAGPipeline
+from src.vectorstore import VectorStore
 
 
 def test_hashing_embedder_normalized_and_fixed_dim():

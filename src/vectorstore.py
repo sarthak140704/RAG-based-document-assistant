@@ -53,6 +53,23 @@ class VectorStore:
     def size(self) -> int:
         return len(self._meta)
 
+    @property
+    def meta(self) -> List[dict]:
+        return self._meta
+
+    @property
+    def id_to_idx(self) -> dict:
+        return {m["chunk_id"]: i for i, m in enumerate(self._meta)}
+
+    def embed_query(self, text: str) -> np.ndarray:
+        return self.embedder.encode([text])[0]
+
+    def cosine_all(self, qvec: np.ndarray) -> np.ndarray:
+        """Cosine similarity of the query vector against every stored vector."""
+        if self._vectors is None:
+            return np.zeros(0, dtype=np.float32)
+        return self._vectors @ qvec
+
     def add_chunks(self, chunks: List[Chunk]) -> int:
         if not chunks:
             return 0
